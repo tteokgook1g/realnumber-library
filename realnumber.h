@@ -1,44 +1,25 @@
 //This header file defines about class realnumber(math).
 
 #pragma once
-#ifndef REALNUMBER_REALNUMBER_H_
-#define REALNUMBER_REALNUMBER_H_
+#ifndef REALNUMBER_REAL_H_
+#define REALNUMBER_REAL_H_
 
 #include <algorithm>
 #include <iostream>
 #include <string>
+#include <vector>
 
-#ifndef NAMESPACE_DEFINE
-#define NAMESPACE_DEFINE
-#define REAL_NUMBER_BEGIN namespace realnumber {
-#define REAL_NUMBER_END }
-#endif
-
-REAL_NUMBER_BEGIN
-
-using MySize_t = unsigned short;
+#ifndef REAL_BEGIN
+#define REAL_BEGIN namespace real {
+#endif // !REAL_BEGIN
+#ifndef REAL_END
+#define REAL_END }
+#endif // !REAL_END
 
 
-//change the values according to the situation
-//The "accuracy" is how many digits are found after the decimal point.
-constexpr int kAccuracy = 100;
-//Heap error occurs when something is allocated more than the "max_size_val."
-constexpr int kMaxSizeVal = USHRT_MAX;
+REAL_BEGIN
 
 namespace {
-	//Check that whether value is blank or not.
-	inline constexpr bool IsBlank(const char _Val) noexcept {
-		if (_Val == ' ' || _Val == '	' || _Val == '\n') return true;
-		return false;
-	}
-	//Delete ','
-	inline void DeleteComma(std::string& val) noexcept {
-		val.erase(std::remove(val.begin(), val.end(), ','), val.end());
-	}
-	//Delete blanks
-	inline void DeleteBlank(std::string& val) noexcept {
-		val.erase(std::remove_if(val.begin(), val.end(), IsBlank), val.end());
-	}
 	//Change A,B,C... to a,b,c...
 	inline void CapitalToSmall(std::string& val) noexcept {
 		for (size_t i = 0;i != val.length();i++) {
@@ -54,7 +35,7 @@ namespace {
 	}
 	inline bool IsNumber(const std::string& _Val) noexcept {
 		std::string val(_Val);
-		DeleteComma(val);
+		val.erase(std::remove(val.begin(), val.end(), ','), val.end());
 		bool exist_point = false;
 		switch (val.at(0))
 		{
@@ -62,6 +43,7 @@ namespace {
 			break;
 		case '.':
 			exist_point = true;
+			break;
 		default:
 			if (IsNumber(val.at(0))) break;
 			return false;
@@ -119,27 +101,27 @@ namespace {
 //This class is about real number.
 //This class is fixed point.
 class FixedReal {
-protected:
-	//data
+public:
+	using DataT = short;
+	//change the values according to the situation
+	//The "accuracy" is how many digits are found after the decimal point.
+	static const int kAccuracy = 30;
+
+private:
 	//true is -,false is +,0 is +
 	bool sign_;
-	short* data_int_;
-	short* data_dec_;
-	MySize_t reserved_size_;
+	std::vector<short> data_int_;
+	std::vector<short> data_dec_;
+	//0 means NaN or infinity.
+	int capacity_;
 	bool infinity_bit_;
 
-	explicit FixedReal(const unsigned long long& _Val, bool _Sign, bool _Check2) noexcept;
-	//Error occurs when someone tries to reference out of range.
-	short& operator[](const int index) const;
-public:
-	//flag values
-	static const int return_INFINITY = kMaxSizeVal + 1;
-	static const int return_NaN = kMaxSizeVal + 2;
-
-
-	//constructor
-	FixedReal() noexcept;
 	explicit FixedReal(bool _Sign, bool _INFINITYbit) noexcept;
+	explicit FixedReal(const unsigned long long& _Val, bool _Sign, bool _Check2) noexcept;
+	short operator[](const int index) const;
+	short& operator[](const int index);
+public:
+	FixedReal() noexcept;
 	FixedReal(const std::string& _Val) noexcept;
 	FixedReal(const bool _Val) noexcept;
 	FixedReal(const short _Val) noexcept;
@@ -155,43 +137,42 @@ public:
 	FixedReal(const long double& _Val) noexcept;
 	FixedReal(const char* const _Val) noexcept;
 	FixedReal(const std::nullptr_t& _nullptr) noexcept;
-	FixedReal(const FixedReal& _Val) noexcept;
-	FixedReal(FixedReal&& _Val) noexcept;
+	FixedReal(const FixedReal& _Val) = default;
+	FixedReal(FixedReal&& _Val) = default;
 
-	~FixedReal();
+	~FixedReal() = default;
 
 	//Reserves places that datas will be saved.
-	void Reserve(const MySize_t _Size) noexcept;
-	//Reserves double of current.
-	void Sizeup() noexcept;
+	void Reserve(const size_t _Size) noexcept;
 
 	//Check how many digit are saved in integer place.
+	//If integer part is 0, Nan and infinity returns 0.
 	int DigitInt() const noexcept;
-	//Check how many digit are saved in integer place.
+	//Check how many digit are saved in decimal place.
+	//If decimal part is 0, Nan and infinity returns 0.
 	int DigitDec() const noexcept;
-	//Check current reserved size.
-	int ReservedSizeCurrent() const noexcept;
 	//Check the highest digit.
+	//0, Nan and infinity returns 0.
 	int DigitHighest() const noexcept;
+	//Check current reserved size.
+	inline int Capacity() const noexcept {
+		return capacity_;
+	}
 	//Check whether it is infinity or not.
-	bool IsInfinity() const noexcept;
+	inline bool IsInfinity() const noexcept {
+		return infinity_bit_;
+	}
 	//Check whether it is not a number or a number.
 	//Includes infinity.
-	bool IsNan() const noexcept;
+	inline bool IsNan() const noexcept {
+		return capacity_ == 0;
+	}
 	inline bool IsInteger() const noexcept {
-		return (data_dec_[0] == 0 && DigitDec() == 1);
-	}
-	inline bool IsEven() const noexcept {
-		return (data_int_[0] == 1 || data_int_[0] == 3 ||
-			data_int_[0] == 5 || data_int_[0] == 7 || data_int_[0] == 9);
-	}
-	inline bool IsOdd() const noexcept {
-		return (data_int_[0] == 0 || data_int_[0] == 2 ||
-			data_int_[0] == 4 || data_int_[0] == 6 || data_int_[0] == 8);
+		return DigitDec() == 0;
 	}
 
-	const FixedReal& operator=(const FixedReal& _Val) noexcept;
-	const FixedReal& operator=(FixedReal&& _Val) noexcept;
+	FixedReal& operator=(const FixedReal&) = default;
+	FixedReal& operator=(FixedReal&&) = default;
 	const FixedReal& operator+=(const FixedReal& _Val) noexcept;
 	const FixedReal& operator-=(const FixedReal& _Val) noexcept;
 	const FixedReal& operator*=(const FixedReal& _Val) noexcept;
@@ -199,13 +180,13 @@ public:
 	const FixedReal& operator<<=(const int _Val) noexcept;
 	const FixedReal& operator>>=(const int _Val) noexcept;
 
-	const FixedReal operator<<(const int index) const noexcept;
-	const FixedReal operator>>(const int index) const noexcept;
+	FixedReal operator<<(const int index) const noexcept;
+	FixedReal operator>>(const int index) const noexcept;
 	const FixedReal& operator++() noexcept;
-	const FixedReal operator++(int) noexcept;
+	FixedReal operator++(int) noexcept;
 	const FixedReal& operator--() noexcept;
-	const FixedReal operator--(int) noexcept;
-	const FixedReal operator-() const noexcept;
+	FixedReal operator--(int) noexcept;
+	FixedReal operator-() const noexcept;
 
 
 	friend std::istream& operator>>(std::istream& _Istr, FixedReal& _Val) noexcept;
@@ -238,6 +219,7 @@ public:
 
 
 	//If someone tries to reference out of range, it returns 0.
+	//Read Only
 	short At(const int index) const;
 	FixedReal RoundOff(const int _digit = 0) noexcept;
 	FixedReal RoundUp(const int _digit = 0) noexcept;
@@ -263,6 +245,6 @@ FixedReal RoundDown(const FixedReal& _Val, const int _digit = 0) noexcept;
 
 FixedReal Factorial(const unsigned int _Val);
 
-REAL_NUMBER_END
+REAL_END
 
-#endif // !REALNUMBER_REALNUMBER_H_
+#endif // !REALNUMBER_REAL_H_
