@@ -10,34 +10,31 @@ REAL_BEGIN
 FixedReal::FixedReal(bool _Sign, bool _INFINITYbit) noexcept : infinity_bit_(_INFINITYbit) {
 	if (infinity_bit_) {
 		sign_ = _Sign;
-		capacity_ = 0;
 		data_int_.clear();
 		data_dec_.clear();
 		return;
 	}
 	else {
 		sign_ = false;
-		capacity_ = 10;
 		data_int_.resize(10);
 		data_dec_.resize(10);
 	}
 }
 FixedReal::FixedReal(const unsigned long long& _Val, bool _Sign, bool _Check2) noexcept :sign_(_Sign), infinity_bit_(0) {
 	std::string val{ std::to_string(_Val) };
-	capacity_ = val.length();
-	data_int_.resize(capacity_);
-	data_dec_.resize(capacity_);
-	for (int i = capacity_ - 1;i >= 0;i--) {
-		data_int_[capacity_ - i - 1] = val.at(i) - '0';
+	data_int_.resize(val.length());
+	data_dec_.resize(val.length());
+	for (int i = val.length() - 1;i >= 0;i--) {
+		data_int_[val.length() - i - 1] = val.at(i) - '0';
 	}
 }
 
-FixedReal::FixedReal() noexcept :infinity_bit_(0), sign_(0), capacity_(10) {
-	data_int_.resize(capacity_);
-	data_dec_.resize(capacity_);
+FixedReal::FixedReal() noexcept :infinity_bit_(0), sign_(0) {
+	data_int_.resize(10);
+	data_dec_.resize(10);
 }
 FixedReal::FixedReal(const std::string& _Val) noexcept
-	:infinity_bit_(0), sign_(0), capacity_(0) {
+	:infinity_bit_(0), sign_(0) {
 	std::string val = _Val;
 	val.erase(
 		std::remove_if(val.begin(), val.end(),
@@ -82,7 +79,7 @@ FixedReal::FixedReal(const std::string& _Val) noexcept
 	if (val.find('.') == std::string::npos) {
 		dec_part = "";
 	}
-	capacity_ = std::max(int_part.length(), dec_part.length());
+	int capacity_ = std::max(int_part.length(), dec_part.length());
 	data_int_.resize(capacity_);
 	data_dec_.resize(capacity_);
 	int i = 0;
@@ -144,55 +141,41 @@ FixedReal::FixedReal(const char* const _Val) noexcept {
 	*this = std::move(FixedReal{ std::string(_Val) });
 }
 FixedReal::FixedReal(const std::nullptr_t& _nullptr) noexcept
-	:infinity_bit_(0), sign_(0), capacity_(0) {}
+	:infinity_bit_(0), sign_(0) {}
 
 void FixedReal::Reserve(const size_t _Size) noexcept {
-	if (infinity_bit_ || static_cast<size_t>(capacity_) >= _Size
+	if (infinity_bit_ || static_cast<size_t>(Capacity()) >= _Size
 		|| _Size > static_cast<size_t>(INT_MAX)) return;
-	if (capacity_ == 0) {
-		capacity_ = _Size;
-		data_int_.resize(capacity_);
-		data_dec_.resize(capacity_);
-	}
-	else {
-		FixedReal temp(std::move(*this));
-		capacity_ = _Size;
-		data_int_.resize(capacity_);
-		data_dec_.resize(capacity_);
-		int i = 0;
-		for (;i < temp.capacity_;i++) {
-			data_int_[i] = temp.data_int_.at(i);
-			data_dec_[i] = temp.data_dec_.at(i);
-		}
-	}
+	data_int_.resize(_Size);
+	data_dec_.resize(_Size);
 }
 
 int FixedReal::DigitInt() const noexcept {
-	if (capacity_ == 0) {
+	if (IsNan()) {
 		return NULL;
 	}
-	int i = capacity_ - 1;
+	int i = Capacity() - 1;
 	for (;i >= 0;i--) {
 		if (data_int_.at(i) != 0) break;
 	}
 	++i;
-	return static_cast<size_t>(i);
+	return i;
 }
 int FixedReal::DigitDec() const noexcept {
-	if (capacity_ == 0) {
+	if (IsNan()) {
 		return NULL;
 	}
-	int i = capacity_ - 1;
+	int i = Capacity() - 1;
 	for (;i >= 0;i--) {
 		if (data_dec_.at(i) != 0) break;
 	}
 	++i;
-	return static_cast<size_t>(i);
+	return i;
 }
 int FixedReal::DigitHighest() const noexcept {
-	if (capacity_ == 0) return NULL;
+	if (IsNan()) return NULL;
 	if (DigitInt() > 0) return DigitInt() - 1;
-	for (int i = 0;i <= capacity_;i++) {
+	for (int i = 0;i <= Capacity();i++) {
 		if (data_dec_.at(i) != 0) return -i - 1;
 	}
 	return 0;
@@ -205,7 +188,7 @@ short FixedReal::operator[](const int index) const {
 		std::cout << "Class_Real_Number.cpp" << std::endl;
 		throw std::exception{};
 	}
-	if (capacity_ == 0) {
+	if (IsNan()) {
 		std::cout << "REFERENCE NaN" << std::endl;
 		std::cout << "ERROR position : " << __FUNCTION__ << std::endl;
 		std::cout << "Class_Real_Number.cpp" << std::endl;
@@ -222,17 +205,17 @@ short& FixedReal::operator[](const int index) {
 		std::cout << "Class_Real_Number.cpp" << std::endl;
 		throw std::exception{};
 	}
-	if (capacity_ == 0) {
+	if (IsNan()) {
 		std::cout << "REFERENCE NaN" << std::endl;
 		std::cout << "ERROR position : " << __FUNCTION__ << std::endl;
 		std::cout << "Class_Real_Number.cpp" << std::endl;
 		throw std::exception{};
 	}
-	if (index >= capacity_ || index < -1 * capacity_) {
+	if (index >= Capacity() || index < -1 * static_cast<int>(Capacity())) {
 		std::cout << "Referenced value out of range." << std::endl;
 		std::cout << "ERROR position : " << __FUNCTION__ << std::endl;
 		std::cout << "Class_Real_Number.cpp" << std::endl;
-		std::cout << "capacity: " << capacity_ << ", index: " << index << std::endl;
+		std::cout << "capacity: " << Capacity() << ", index: " << index << std::endl;
 		throw std::exception{};
 	}
 	if (index >= 0) return data_int_[index];
@@ -266,14 +249,14 @@ const FixedReal& FixedReal::operator>>=(const int _Val) noexcept {
 }
 
 FixedReal FixedReal::operator<<(const int index) const noexcept {
-	if (capacity_ == 0 || index == 0) {
+	if (IsNan() || index == 0) {
 		return *this;
 	}
 	if (index < 0) {
 		return (*this) >> (-index);
 	}
 	FixedReal answer{ *this };
-	answer.Reserve(capacity_ + index);
+	answer.Reserve(Capacity() + index);
 	for (int i = DigitHighest();i >= -1 * DigitDec();i--) {
 		answer[i + index] = answer[i];
 		answer[i] = 0;
@@ -281,14 +264,14 @@ FixedReal FixedReal::operator<<(const int index) const noexcept {
 	return answer;
 }
 FixedReal FixedReal::operator>>(const int index) const noexcept {
-	if (capacity_ == 0 || index == 0) {
+	if (IsNan() || index == 0) {
 		return *this;
 	}
 	if (index < 0) {
 		return (*this) << (-index);
 	}
 	FixedReal answer{ *this };
-	answer.Reserve(capacity_ + index);
+	answer.Reserve(Capacity() + index);
 	for (int i = -1 * DigitDec();i < DigitInt();i++) {
 		answer[i - index] = answer[i];
 		answer[i] = 0;
@@ -351,7 +334,7 @@ std::istream& operator>>(std::istream& _Istr, FixedReal& _Reference) noexcept {
 	return _Istr;
 }
 std::ostream& operator<<(std::ostream& _Ostr, const FixedReal& _Val) noexcept {
-	if (_Val.capacity_ == 0) {
+	if (_Val.IsNan()) {
 		if (_Val.infinity_bit_) {
 			if (_Val.sign_) _Ostr << "-INFINITY";
 			else _Ostr << "INFINITY";
@@ -375,70 +358,91 @@ FixedReal operator+(const FixedReal& _Val1, const FixedReal& _Val2) {
 		return _Val1;
 	}
 	if (_Val2.infinity_bit_) return _Val2;
-	if (_Val1.capacity_ == 0 || _Val2.capacity_ == 0) return FixedReal(nullptr);
-	size_t to_alloc = std::max(std::max(_Val1.DigitDec(), _Val1.DigitInt()), std::max(_Val2.DigitDec(), _Val2.DigitInt())) + 1;
-	FixedReal answer{};
+	if (_Val1.IsNan() || _Val2.IsNan()) return FixedReal(nullptr);
+	FixedReal answer(nullptr);
 	FixedReal val1{ _Val1 };
 	FixedReal val2{ _Val2 };
-	if (val1.sign_) {
-		for (int i = -1 * val1.DigitDec();i < val1.DigitInt();i++) {
-			val1[i] *= -1;
+	if (_Val1.sign_) {
+		if (_Val2.sign_) {
+			val1.sign_ = false, val2.sign_ = false;
+			answer = val1 + val2;
+			answer.sign_ = true;
+			return answer;
+		}
+		else
+		{
+			val1.sign_ = false;
+			answer = val2 - val1;
+			return answer;
 		}
 	}
-	if (val2.sign_) {
-		for (int i = -1 * val2.DigitDec();i < val2.DigitInt();i++) {
-			val2[i] *= -1;
-		}
+	else if (_Val2.sign_) {
+		val2.sign_ = false;
+		answer = val1 - val2;
+		return answer;
 	}
-	answer.Reserve(to_alloc);
-	answer.capacity_ = to_alloc;
-	for (int i = -1 * answer.capacity_;i < answer.capacity_;i++) {
+	answer.Reserve(std::max(std::max(_Val1.DigitDec(), _Val1.DigitInt()), std::max(_Val2.DigitDec(), _Val2.DigitInt())) + 1);
+	for (int i = -1 * answer.Capacity();i < answer.Capacity();i++) {
 		answer[i] = val1.At(i) + val2.At(i);
 	}
-	if (answer.At(answer.DigitHighest()) < 0) {
-		answer.sign_ = 1;
-		for (int i = -1 * answer.capacity_;i < answer.capacity_;i++) {
-			answer[i] *= -1;
-		}
-	}
-	if (_Val1.sign_ ^ _Val2.sign_) {
-		for (int i = -1 * answer.DigitDec();i < answer.DigitInt() - 1;i++) {
-			if (answer.At(i) < 0) {
-				answer[i] += 10;
-				--answer[i + 1];
-			}
-		}
-	}
-	else
-	{
-		for (int i = -1 * answer.DigitDec();i <= answer.DigitInt();i++) {
-			if (answer.At(i) > 9) {
-				answer[i] -= 10;
-				++answer[i + 1];
-			}
-		}
-	}
-
-	/*volatile int limit = answer.DigitInt();
-	for (int i = -1 * answer.DigitDec();i < limit;i++) {
+	for (int i = -1 * answer.DigitDec();i <= answer.DigitInt();i++) {
 		if (answer.At(i) > 9) {
 			answer[i] -= 10;
-			answer[i + 1] += 1;
-			if (i == limit - 1) {
-				++limit;
-			}
+			++answer[i + 1];
 		}
+	}
+	return answer;
+}
+FixedReal operator-(const FixedReal& _Val1, const FixedReal& _Val2) {
+	if (_Val1.infinity_bit_) {
+		if (_Val2.infinity_bit_) {
+			if (_Val1.sign_ ^ _Val2.sign_) return _Val1;
+		}
+		return FixedReal(nullptr);
+	}
+	if (_Val2.infinity_bit_) {
+		if (_Val2.sign_) return FixedReal(false, true);
+		else return FixedReal(true, true);
+	}
+	if (_Val1.IsNan() || _Val2.IsNan()) return FixedReal(nullptr);
+	FixedReal answer(nullptr);
+	FixedReal val1{ _Val1 };
+	FixedReal val2{ _Val2 };
+	if (_Val1.sign_) {
+		if (_Val2.sign_) {
+			val1.sign_ = false, val2.sign_ = false;
+			answer = val2 - val1;
+			return answer;
+		}
+		else
+		{
+			val1.sign_ = false;
+			answer = val1 + val2;
+			answer.sign_ = true;
+			return answer;
+		}
+	}
+	else if (_Val2.sign_) {
+		val2.sign_ = false;
+		answer = val1 + val2;
+		return answer;
+	}
+	if (_Val1 < _Val2) {
+		answer = val2 - val1;
+		answer.sign_ = true;
+		return answer;
+	}
+	answer.Reserve(std::max(std::max(_Val1.DigitDec(), _Val1.DigitInt()), std::max(_Val2.DigitDec(), _Val2.DigitInt())));
+	for (int i = -1 * answer.Capacity();i < answer.Capacity();i++) {
+		answer[i] = val1.At(i) - val2.At(i);
+	}
+	for (int i = -1 * answer.DigitDec();i <= answer.DigitInt();i++) {
 		if (answer.At(i) < 0) {
 			answer[i] += 10;
 			--answer[i + 1];
 		}
-	}*/
+	}
 	return answer;
-}
-FixedReal operator-(const FixedReal& _Val1, const FixedReal& _Val2) {
-	FixedReal val2{ _Val2 };
-	val2.sign_ = !val2.sign_;
-	return _Val1 + val2;
 }
 FixedReal operator*(const FixedReal& _Val1, const FixedReal& _Val2) {
 	if (_Val1.infinity_bit_ && _Val2.infinity_bit_) {
@@ -450,10 +454,10 @@ FixedReal operator*(const FixedReal& _Val1, const FixedReal& _Val2) {
 		if (_Val1.sign_ ^ _Val2.sign_) return FixedReal(true, true);
 		else return FixedReal(false, true);
 	}
-	if (_Val1.capacity_ == 0 || _Val2.capacity_ == 0) return FixedReal(nullptr);
+	if (_Val1.IsNan() || _Val2.IsNan()) return FixedReal(nullptr);
 	if (_Val1 == 0 || _Val2 == 0) return 0;
 	const int to_alloc = std::max(_Val1.DigitInt() + _Val2.DigitInt(), _Val1.DigitDec() + _Val2.DigitDec());
-	FixedReal answer{};
+	FixedReal answer(nullptr);
 	answer.Reserve(to_alloc);
 	if (_Val1.sign_ ^ _Val2.sign_) answer.sign_ = 1;
 	int k;
@@ -485,10 +489,10 @@ FixedReal operator/(const FixedReal& _Val1, const FixedReal& _Val2) {
 		if (_Val1.sign_) return FixedReal(true, true);
 		else return FixedReal(false, true);
 	}
-	if (_Val1.capacity_ == 0 || _Val2.capacity_ == 0) return FixedReal(nullptr);
+	if (_Val1.IsNan() || _Val2.IsNan()) return FixedReal(nullptr);
 	if (_Val1 == 0) return 0;
 	const int to_alloc = std::max(FixedReal::kAccuracy, static_cast<int>(_Val1.DigitInt() + _Val2.DigitDec()));
-	FixedReal answer{};
+	FixedReal answer(nullptr);
 	answer.Reserve(to_alloc);
 	if (_Val1.sign_ ^ _Val2.sign_) answer.sign_ = 1;
 	FixedReal remainder{ _Val1 };
@@ -518,7 +522,7 @@ bool operator<(const FixedReal& _Val1, const FixedReal& _Val2) noexcept {
 		else return _Val1.sign_;
 	}
 	else if (_Val2.infinity_bit_) return !_Val2.sign_;
-	if (_Val1.capacity_ == 0 || _Val2.capacity_ == 0) return false;
+	if (_Val1.IsNan() || _Val2.IsNan()) return false;
 	if (_Val1.sign_ ^ _Val2.sign_) return !_Val2.sign_;
 	if (_Val1.sign_) {
 		FixedReal val1{ _Val1 };
@@ -547,7 +551,7 @@ bool operator>(const FixedReal& _Val1, const FixedReal& _Val2) noexcept {
 		return !_Val1.sign_;
 	}
 	else if (_Val2.infinity_bit_) return _Val2.sign_;
-	if (_Val1.capacity_ == 0 || _Val2.capacity_ == 0) return false;
+	if (_Val1.IsNan() || _Val2.IsNan()) return false;
 	if (_Val1.sign_ ^ _Val2.sign_) return !_Val1.sign_;
 	if (_Val1.sign_) {
 		FixedReal val1{ _Val1 };
@@ -579,8 +583,8 @@ bool operator==(const FixedReal& _Val1, const FixedReal& _Val2) noexcept {
 		else return false;
 	}
 	else if (_Val2.infinity_bit_) return false;
-	else if (_Val1.capacity_ == 0 && _Val2.capacity_ == 0) return true;
-	else if (_Val1.capacity_ == 0 || _Val2.capacity_ == 0) return false;
+	else if (_Val1.IsNan() && _Val2.IsNan()) return true;
+	else if (_Val1.IsNan() || _Val2.IsNan()) return false;
 	else if (_Val1.sign_ ^ _Val2.sign_) return false;
 	else if (_Val1.DigitInt() != _Val2.DigitInt() || _Val1.DigitDec() != _Val2.DigitDec())
 		return false;
@@ -602,7 +606,7 @@ FixedReal::operator std::string() const noexcept {
 		if (sign_) return std::string{ "-INFINITY" };
 		else return std::string{ "INFINITY" };
 	}
-	if (capacity_ == 0) return std::string{ "NaN" };
+	if (IsNan()) return std::string{ "NaN" };
 	std::string answer;
 	if (sign_) answer.push_back('-');
 	for (int i = DigitInt() - 1;i >= 0;i--) answer.push_back(data_int_.at(i) + '0');
@@ -616,7 +620,7 @@ FixedReal::operator bool() const noexcept {
 	else return true;
 }
 FixedReal::operator short() const noexcept {
-	if (capacity_ == 0) return NULL;
+	if (IsNan()) return NULL;
 	if (*this > SHRT_MAX - 1)return SHRT_MAX;
 	if (*this < SHRT_MIN + 1)return SHRT_MIN;
 	short answer = 0;
@@ -625,7 +629,7 @@ FixedReal::operator short() const noexcept {
 	return answer;
 }
 FixedReal::operator unsigned short() const noexcept {
-	if (capacity_ == 0) return NULL;
+	if (IsNan()) return NULL;
 	if (*this > USHRT_MAX - 1) return USHRT_MAX;
 	if (*this < 1) return 0;
 	unsigned short answer = 0;
@@ -633,7 +637,7 @@ FixedReal::operator unsigned short() const noexcept {
 	return answer;
 }
 FixedReal::operator int() const noexcept {
-	if (capacity_ == 0) return NULL;
+	if (IsNan()) return NULL;
 	if (*this > INT_MAX - 1) return INT_MAX;
 	if (*this < INT_MIN + 1) return INT_MIN;
 	int answer = 0;
@@ -642,7 +646,7 @@ FixedReal::operator int() const noexcept {
 	return answer;
 }
 FixedReal::operator unsigned int() const noexcept {
-	if (capacity_ == 0) return NULL;
+	if (IsNan()) return NULL;
 	if (*this > UINT_MAX - 1) return UINT_MAX;
 	if (*this < 1) return 0;
 	unsigned int answer = 0;
@@ -650,7 +654,7 @@ FixedReal::operator unsigned int() const noexcept {
 	return answer;
 }
 FixedReal::operator long() const noexcept {
-	if (capacity_ == 0) return NULL;
+	if (IsNan()) return NULL;
 	if (*this > LONG_MAX - 1) return LONG_MAX;
 	if (*this < LONG_MIN + 1) return LONG_MIN;
 	long answer = 0;
@@ -659,7 +663,7 @@ FixedReal::operator long() const noexcept {
 	return answer;
 }
 FixedReal::operator unsigned long() const noexcept {
-	if (capacity_ == 0) return NULL;
+	if (IsNan()) return NULL;
 	if (*this > ULONG_MAX - 1) return ULONG_MAX;
 	if (*this < 1) return 0;
 	unsigned long answer = 0;
@@ -667,7 +671,7 @@ FixedReal::operator unsigned long() const noexcept {
 	return answer;
 }
 FixedReal::operator long long() const noexcept {
-	if (capacity_ == 0) return NULL;
+	if (IsNan()) return NULL;
 	if (*this > LLONG_MAX - 1) return LLONG_MAX;
 	if (*this < LLONG_MIN + 1) return LLONG_MIN;
 	long long answer = 0;
@@ -676,7 +680,7 @@ FixedReal::operator long long() const noexcept {
 	return answer;
 }
 FixedReal::operator unsigned long long() const noexcept {
-	if (capacity_ == 0) return NULL;
+	if (IsNan()) return NULL;
 	if (*this > ULLONG_MAX - 1) return ULLONG_MAX;
 	if (*this < 1) return 0;
 	unsigned long long answer = 0;
@@ -684,7 +688,7 @@ FixedReal::operator unsigned long long() const noexcept {
 	return answer;
 }
 FixedReal::operator float() const noexcept {
-	if (capacity_ == 0) return NULL;
+	if (IsNan()) return NULL;
 	if (*this >= FLT_MAX) return FLT_MAX;
 	if (*this <= -FLT_MAX) return -FLT_MAX;
 	if (*this == 0) return 0.0f;
@@ -694,7 +698,7 @@ FixedReal::operator float() const noexcept {
 	return answer;
 }
 FixedReal::operator double() const noexcept {
-	if (capacity_ == 0) return NULL;
+	if (IsNan()) return NULL;
 	if (*this >= DBL_MAX) return DBL_MAX;
 	if (*this <= -DBL_MAX) return -DBL_MAX;
 	if (*this == 0) return 0.0;
@@ -704,7 +708,7 @@ FixedReal::operator double() const noexcept {
 	return answer;
 }
 FixedReal::operator long double() const noexcept {
-	if (capacity_ == 0) return NULL;
+	if (IsNan()) return NULL;
 	if (*this >= LDBL_MAX) return LDBL_MAX;
 	if (*this <= -LDBL_MAX) return -LDBL_MAX;
 	if (*this == 0) return 0.0L;
@@ -746,7 +750,7 @@ FixedReal FixedReal::RoundDown(const int _digit) noexcept {
 FixedReal Power(const FixedReal& base, const FixedReal& exponent) noexcept {
 	//Check special case
 	{
-		if (base.capacity_ == 0 || exponent.capacity_ == 0) return FixedReal(nullptr);
+		if (base.IsNan() || exponent.IsNan()) return FixedReal(nullptr);
 		bool base0 = (base == 0), base_inf = (base == FixedReal(false, true));
 		bool base_n_inf = (base == FixedReal(true, true)), expo0 = (exponent == 0);
 		bool expo_inf = (exponent == FixedReal(false, true));
@@ -810,7 +814,7 @@ FixedReal PowerOfTen(const int index) noexcept {
 FixedReal SquareRoot(const FixedReal& _Val) noexcept {
 	if (_Val.sign_) return FixedReal(nullptr);
 	if (_Val.infinity_bit_) return _Val;
-	if (_Val.capacity_ == 0) return FixedReal(nullptr);
+	if (_Val.IsNan()) return FixedReal(nullptr);
 	if (_Val == 0) return 0;
 	FixedReal answer{};
 	FixedReal remainder{ _Val };
@@ -844,7 +848,7 @@ FixedReal PrintSquareRoot(const FixedReal& _Val, std::ostream& _Ostr) noexcept {
 		_Ostr << "INFINITY" << std::endl;
 		return FixedReal(false, true);
 	}
-	if (_Val.capacity_ == 0) {
+	if (_Val.IsNan()) {
 		_Ostr << "NaN" << std::endl;
 		return FixedReal(nullptr);
 	}
@@ -912,11 +916,11 @@ FixedReal PrintSquareRoot(const FixedReal& _Val, std::ostream& _Ostr) noexcept {
 	return answer;
 }
 FixedReal RoundOff(const FixedReal& _Val, const int _digit) noexcept {
-	if (_Val.capacity_ == 0) return _Val;
+	if (_Val.IsNan()) return _Val;
 	if (_digit > _Val.DigitInt()) return 0;
 	if (_digit < -1 * _Val.DigitDec()) return _Val;
 	FixedReal answer{};
-	if (_digit == _Val.capacity_) {
+	if (_digit == _Val.Capacity()) {
 		answer.Reserve(_digit + 1);
 		if (_Val.At(_digit - 1) > 4) {
 			answer[_digit] = 1;
@@ -927,7 +931,7 @@ FixedReal RoundOff(const FixedReal& _Val, const int _digit) noexcept {
 	answer = _Val;
 	if (_Val.At(_digit - 1) > 4) {
 		++answer[_digit];
-		for (int i = _digit;i < answer.capacity_;i++) {
+		for (int i = _digit;i < answer.Capacity();i++) {
 			if (answer.At(i) == 10) {
 				answer[i] = 0;
 				++answer[i + 1];
@@ -937,18 +941,18 @@ FixedReal RoundOff(const FixedReal& _Val, const int _digit) noexcept {
 	return RoundDown(answer, _digit);
 }
 FixedReal RoundUp(const FixedReal& _Val, const int _digit) noexcept {
-	if (_Val.capacity_ == 0) return _Val;
+	if (_Val.IsNan()) return _Val;
 	if (_digit > _Val.DigitInt()) return 0;
 	if (_digit < -1 * _Val.DigitDec()) return _Val;
 	FixedReal answer{};
-	if (_digit == _Val.capacity_) {
+	if (_digit == _Val.Capacity()) {
 		answer.Reserve(_digit + 1);
 		answer[_digit] = 1;
 		return answer;
 	}
 	answer = _Val;
 	++answer[_digit];
-	for (int i = _digit;i < answer.capacity_;i++) {
+	for (int i = _digit;i < answer.Capacity();i++) {
 		if (answer.At(i) == 10) {
 			answer[i] = 0;
 			++answer[i + 1];
@@ -957,11 +961,11 @@ FixedReal RoundUp(const FixedReal& _Val, const int _digit) noexcept {
 	return RoundDown(answer, _digit);
 }
 FixedReal RoundDown(const FixedReal& _Val, const int _digit) noexcept {
-	if (_Val.capacity_ == 0) return _Val;
+	if (_Val.IsNan()) return _Val;
 	if (_digit >= _Val.DigitInt()) return 0;
 	if (_digit < -1 * _Val.DigitDec()) return _Val;
 	FixedReal answer{ _Val };
-	for (int i = _digit - 1;i >= -1 * answer.capacity_;i--) answer[i] = 0;
+	for (int i = _digit - 1;i >= -1 * answer.Capacity();i--) answer[i] = 0;
 	return answer;
 }
 
