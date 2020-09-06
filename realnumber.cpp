@@ -1,991 +1,260 @@
+//This header file defines about class realnumber(math).
+
 #pragma once
+#ifndef REALNUMBER_REAL_H_
+#define REALNUMBER_REAL_H_
+
 #include <algorithm>
 #include <iostream>
 #include <string>
-#include "realnumber.h"
+#include <vector>
+
+#ifndef REAL_BEGIN
+#define REAL_BEGIN namespace real {
+#endif // !REAL_BEGIN
+#ifndef REAL_END
+#define REAL_END }
+#endif // !REAL_END
 
 
 REAL_BEGIN
 
-FixedReal::FixedReal(bool _Sign, bool _INFINITYbit) noexcept : infinity_bit_(_INFINITYbit) {
-	if (infinity_bit_) {
-		sign_ = _Sign;
-		capacity_ = 0;
-		data_int_.clear();
-		data_dec_.clear();
-		return;
-	}
-	else {
-		sign_ = false;
-		capacity_ = 10;
-		data_int_.resize(10);
-		data_dec_.resize(10);
-	}
-}
-FixedReal::FixedReal(const unsigned long long& _Val, bool _Sign, bool _Check2) noexcept :sign_(_Sign), infinity_bit_(0) {
-	std::string val{ std::to_string(_Val) };
-	capacity_ = val.length();
-	data_int_.resize(capacity_);
-	data_dec_.resize(capacity_);
-	for (int i = capacity_ - 1;i >= 0;i--) {
-		data_int_[capacity_ - i - 1] = val.at(i) - '0';
-	}
-}
-
-FixedReal::FixedReal() noexcept :infinity_bit_(0), sign_(0), capacity_(10) {
-	data_int_.resize(capacity_);
-	data_dec_.resize(capacity_);
-}
-FixedReal::FixedReal(const std::string& _Val) noexcept
-	:infinity_bit_(0), sign_(0), capacity_(0) {
-	std::string val = _Val;
-	val.erase(
-		std::remove_if(val.begin(), val.end(),
-			[](char x)->bool {return (x == ',' || x == ' ' || x == '	' || x == '\n');}),
-		val.end()
-	);
-	CapitalToSmall(val);
-	if (_Val.find("-inf") != std::string::npos || _Val.find("-infinity") != std::string::npos) {
-		*this = FixedReal(true, true);
-		return;
-	}
-	if (_Val.find("inf") != std::string::npos || _Val.find("infinity") != std::string::npos) {
-		*this = FixedReal(false, true);
-		return;
-	}
-	if (_Val.find("nan") != std::string::npos) {
-		*this = FixedReal(nullptr);
-		return;
-	}
-	if (val.length() == 0) {
-		*this = 0;
-		return;
-	}
-	if (!IsNumber(val)) {
-		std::cout << "It isn't a number." << std::endl;
-		std::cout << "It'll be NaN instead." << std::endl;
-		*this = FixedReal(nullptr);
-		return;
-	}
-	switch (val.at(0))
-	{
-	case '+':
-		val.erase(0, 1);
-		break;
-	case '-':
-		sign_ = 1;
-		val.erase(0, 1);
-		break;
-	}
-	std::string int_part = val.substr(0, val.find('.'));
-	std::string dec_part = val.substr(val.find('.') + 1);
-	if (val.find('.') == std::string::npos) {
-		dec_part = "";
-	}
-	capacity_ = std::max(int_part.length(), dec_part.length());
-	data_int_.resize(capacity_);
-	data_dec_.resize(capacity_);
-	int i = 0;
-	for (;i != int_part.length();i++) {
-		data_int_[i] = int_part.at(int_part.length() - i - 1) - '0';
-	}
-	for (i = 0;i != dec_part.length();i++) {
-		data_dec_[i] = dec_part.at(i) - '0';
-	}
-	for (int i = capacity_ - 1;i >= 0;i--) {
-		if (data_int_.at(i) != 0 || data_dec_.at(i) != 0) return;
-	}
-	sign_ = false;
-}
-FixedReal::FixedReal(const short _Val) noexcept {
-	if (_Val >= 0) *this = std::move(FixedReal(_Val, false, true));
-	else *this = std::move(FixedReal(static_cast<long long>(_Val) * -1, true, true));
-}
-FixedReal::FixedReal(const int _Val) noexcept {
-	if (_Val >= 0) *this = std::move(FixedReal(_Val, false, true));
-	else *this = std::move(FixedReal(static_cast<long long>(_Val) * -1, true, true));
-}
-FixedReal::FixedReal(const long _Val) noexcept {
-	if (_Val >= 0) *this = std::move(FixedReal(_Val, false, true));
-	else *this = std::move(FixedReal(static_cast<long long>(_Val) * -1, true, true));
-}
-FixedReal::FixedReal(const long long& _Val) noexcept {
-	if (_Val >= 0) *this = std::move(FixedReal(_Val, false, true));
-	else *this = std::move(FixedReal(_Val * -1, true, true));
-}
-FixedReal::FixedReal(const unsigned short _Val) noexcept {
-	*this = std::move(FixedReal(_Val, false, true));
-}
-FixedReal::FixedReal(const unsigned int _Val) noexcept {
-	*this = std::move(FixedReal(_Val, false, true));
-}
-FixedReal::FixedReal(const unsigned long _Val) noexcept {
-	*this = std::move(FixedReal(_Val, false, true));
-}
-FixedReal::FixedReal(const unsigned long long& _Val) noexcept {
-	*this = std::move(FixedReal(_Val, false, true));
-}
-FixedReal::FixedReal(const float _Val) noexcept {
-	*this = std::move(FixedReal{ std::to_string(_Val) });
-}
-FixedReal::FixedReal(const double& _Val) noexcept {
-	*this = std::move(FixedReal{ std::to_string(_Val) });
-}
-FixedReal::FixedReal(const long double& _Val) noexcept {
-	*this = std::move(FixedReal{ std::to_string(_Val) });
-}
-FixedReal::FixedReal(const bool _Val) noexcept {
-	*this = std::move(FixedReal{});
-	if (_Val) {
-		data_int_[0] = 1;
-	}
-}
-FixedReal::FixedReal(const char* const _Val) noexcept {
-	*this = std::move(FixedReal{ std::string(_Val) });
-}
-FixedReal::FixedReal(const std::nullptr_t& _nullptr) noexcept
-	:infinity_bit_(0), sign_(0), capacity_(0) {}
-
-void FixedReal::Reserve(const size_t _Size) noexcept {
-	if (infinity_bit_ || static_cast<size_t>(capacity_) >= _Size
-		|| _Size > static_cast<size_t>(INT_MAX)) return;
-	if (capacity_ == 0) {
-		capacity_ = _Size;
-		data_int_.resize(capacity_);
-		data_dec_.resize(capacity_);
-	}
-	else {
-		FixedReal temp(std::move(*this));
-		capacity_ = _Size;
-		data_int_.resize(capacity_);
-		data_dec_.resize(capacity_);
-		int i = 0;
-		for (;i < temp.capacity_;i++) {
-			data_int_[i] = temp.data_int_.at(i);
-			data_dec_[i] = temp.data_dec_.at(i);
-		}
-	}
-}
-
-int FixedReal::DigitInt() const noexcept {
-	if (capacity_ == 0) {
-		return NULL;
-	}
-	int i = capacity_ - 1;
-	for (;i >= 0;i--) {
-		if (data_int_.at(i) != 0) break;
-	}
-	++i;
-	return static_cast<size_t>(i);
-}
-int FixedReal::DigitDec() const noexcept {
-	if (capacity_ == 0) {
-		return NULL;
-	}
-	int i = capacity_ - 1;
-	for (;i >= 0;i--) {
-		if (data_dec_.at(i) != 0) break;
-	}
-	++i;
-	return static_cast<size_t>(i);
-}
-int FixedReal::DigitHighest() const noexcept {
-	if (capacity_ == 0) return NULL;
-	if (DigitInt() > 0) return DigitInt() - 1;
-	for (int i = 0;i <= capacity_;i++) {
-		if (data_dec_.at(i) != 0) return -i - 1;
-	}
-	return 0;
-}
-
-short FixedReal::operator[](const int index) const {
-	if (infinity_bit_) {
-		std::cout << "REFERENCE INFINITY" << std::endl;
-		std::cout << "ERROR position : " << __FUNCTION__ << std::endl;
-		std::cout << "Class_Real_Number.cpp" << std::endl;
-		throw std::exception{};
-	}
-	if (capacity_ == 0) {
-		std::cout << "REFERENCE NaN" << std::endl;
-		std::cout << "ERROR position : " << __FUNCTION__ << std::endl;
-		std::cout << "Class_Real_Number.cpp" << std::endl;
-		throw std::exception{};
-	}
-	if (index >= DigitInt() || index < -1 * DigitDec()) return 0;
-	if (index >= 0) return data_int_.at(index);
-	else return data_dec_.at(-index - 1);
-}
-short& FixedReal::operator[](const int index) {
-	if (infinity_bit_) {
-		std::cout << "REFERENCE INFINITY" << std::endl;
-		std::cout << "ERROR position : " << __FUNCTION__ << std::endl;
-		std::cout << "Class_Real_Number.cpp" << std::endl;
-		throw std::exception{};
-	}
-	if (capacity_ == 0) {
-		std::cout << "REFERENCE NaN" << std::endl;
-		std::cout << "ERROR position : " << __FUNCTION__ << std::endl;
-		std::cout << "Class_Real_Number.cpp" << std::endl;
-		throw std::exception{};
-	}
-	if (index >= capacity_ || index < -1 * capacity_) {
-		std::cout << "Referenced value out of range." << std::endl;
-		std::cout << "ERROR position : " << __FUNCTION__ << std::endl;
-		std::cout << "Class_Real_Number.cpp" << std::endl;
-		std::cout << "capacity: " << capacity_ << ", index: " << index << std::endl;
-		throw std::exception{};
-	}
-	if (index >= 0) return data_int_[index];
-	else return data_dec_[-index - 1];
-}
-
-
-const FixedReal& FixedReal::operator+=(const FixedReal& _Val) noexcept {
-	(*this) = (*this) + _Val;
-	return *this;
-}
-const FixedReal& FixedReal::operator-=(const FixedReal& _Val) noexcept {
-	(*this) = (*this) - _Val;
-	return *this;
-}
-const FixedReal& FixedReal::operator*=(const FixedReal& _Val) noexcept {
-	(*this) = (*this) * _Val;
-	return *this;
-}
-const FixedReal& FixedReal::operator/=(const FixedReal& _Val) noexcept {
-	(*this) = (*this) / _Val;
-	return *this;
-}
-const FixedReal& FixedReal::operator<<=(const int _Val) noexcept {
-	(*this) = (*this) << _Val;
-	return *this;
-}
-const FixedReal& FixedReal::operator>>=(const int _Val) noexcept {
-	(*this) = (*this) >> _Val;
-	return *this;
-}
-
-FixedReal FixedReal::operator<<(const int index) const noexcept {
-	if (capacity_ == 0 || index == 0) {
-		return *this;
-	}
-	if (index < 0) {
-		return (*this) >> (-index);
-	}
-	FixedReal answer{ *this };
-	answer.Reserve(capacity_ + index);
-	for (int i = DigitHighest();i >= -1 * DigitDec();i--) {
-		answer[i + index] = answer[i];
-		answer[i] = 0;
-	}
-	return answer;
-}
-FixedReal FixedReal::operator>>(const int index) const noexcept {
-	if (capacity_ == 0 || index == 0) {
-		return *this;
-	}
-	if (index < 0) {
-		return (*this) << (-index);
-	}
-	FixedReal answer{ *this };
-	answer.Reserve(capacity_ + index);
-	for (int i = -1 * DigitDec();i < DigitInt();i++) {
-		answer[i - index] = answer[i];
-		answer[i] = 0;
-	}
-	return answer;
-}
-const FixedReal& FixedReal::operator++() noexcept {
-	if (data_int_.at(0) != 9) {
-		data_int_[0] += 1;
-	}
-	else
-	{
-		*this += 1;
-	}
-	return *this;
-}
-FixedReal FixedReal::operator++(int) noexcept {
-	FixedReal temp{ *this };
-	if (data_int_.at(0) != 9) {
-		data_int_[0] += 1;
-	}
-	else
-	{
-		*this += 1;
-	}
-	return temp;
-}
-const FixedReal& FixedReal::operator--() noexcept {
-	if (data_int_.at(0) != 0) {
-		data_int_[0] -= 1;
-	}
-	else
-	{
-		*this -= 1;
-	}
-	return *this;
-}
-FixedReal FixedReal::operator--(int) noexcept {
-	FixedReal temp(*this);
-	if (data_int_.at(0) != 0) {
-		data_int_[0] -= 1;
-	}
-	else
-	{
-		*this -= 1;
-	}
-	return temp;
-}
-FixedReal FixedReal::operator-() const noexcept {
-	FixedReal answer{ *this };
-	answer.sign_ = !answer.sign_;
-	return answer;
-}
-
-
-std::istream& operator>>(std::istream& _Istr, FixedReal& _Reference) noexcept {
-	std::string _val;
-	_Istr >> _val;
-	_Reference = FixedReal{ _val };
-	return _Istr;
-}
-std::ostream& operator<<(std::ostream& _Ostr, const FixedReal& _Val) noexcept {
-	if (_Val.capacity_ == 0) {
-		if (_Val.infinity_bit_) {
-			if (_Val.sign_) _Ostr << "-INFINITY";
-			else _Ostr << "INFINITY";
-		}
-		else _Ostr << "NaN";
-		return _Ostr;
-	}
-	if (_Val.sign_ == 1) _Ostr << '-';
-	if (_Val.DigitInt() == 0) _Ostr << 0;
-	for (int i = _Val.DigitInt() - 1;i >= 0;i--) _Ostr << _Val.data_int_.at(i);
-	if (_Val.DigitDec() == 0) return _Ostr;
-	_Ostr << '.';
-	for (int i = 0;i < _Val.DigitDec();i++) _Ostr << _Val.data_dec_.at(i);
-	return _Ostr;
-}
-FixedReal operator+(const FixedReal& _Val1, const FixedReal& _Val2) {
-	if (_Val1.infinity_bit_) {
-		if (_Val2.infinity_bit_) {
-			if (_Val1.sign_ ^ _Val2.sign_) return FixedReal(nullptr);
-		}
-		return _Val1;
-	}
-	if (_Val2.infinity_bit_) return _Val2;
-	if (_Val1.capacity_ == 0 || _Val2.capacity_ == 0) return FixedReal(nullptr);
-	size_t to_alloc = std::max(std::max(_Val1.DigitDec(), _Val1.DigitInt()), std::max(_Val2.DigitDec(), _Val2.DigitInt())) + 1;
-	FixedReal answer{};
-	FixedReal val1{ _Val1 };
-	FixedReal val2{ _Val2 };
-	if (val1.sign_) {
-		for (int i = -1 * val1.DigitDec();i < val1.DigitInt();i++) {
-			val1[i] *= -1;
-		}
-	}
-	if (val2.sign_) {
-		for (int i = -1 * val2.DigitDec();i < val2.DigitInt();i++) {
-			val2[i] *= -1;
-		}
-	}
-	answer.Reserve(to_alloc);
-	answer.capacity_ = to_alloc;
-	for (int i = -1 * answer.capacity_;i < answer.capacity_;i++) {
-		answer[i] = val1.At(i) + val2.At(i);
-	}
-	if (answer.At(answer.DigitHighest()) < 0) {
-		answer.sign_ = 1;
-		for (int i = -1 * answer.capacity_;i < answer.capacity_;i++) {
-			answer[i] *= -1;
-		}
-	}
-	if (_Val1.sign_ ^ _Val2.sign_) {
-		for (int i = -1 * answer.DigitDec();i < answer.DigitInt() - 1;i++) {
-			if (answer.At(i) < 0) {
-				answer[i] += 10;
-				--answer[i + 1];
-			}
-		}
-	}
-	else
-	{
-		for (int i = -1 * answer.DigitDec();i <= answer.DigitInt();i++) {
-			if (answer.At(i) > 9) {
-				answer[i] -= 10;
-				++answer[i + 1];
+namespace {
+	//Change A,B,C... to a,b,c...
+	inline void CapitalToSmall(std::string& val) noexcept {
+		for (size_t i = 0;i != val.length();i++) {
+			if ('A' <= val.at(i) && val.at(i) <= 'Z') {
+				val.replace(i, 1, std::string(1, val.at(i) - 'A' + 'a'));
 			}
 		}
 	}
 
-	/*volatile int limit = answer.DigitInt();
-	for (int i = -1 * answer.DigitDec();i < limit;i++) {
-		if (answer.At(i) > 9) {
-			answer[i] -= 10;
-			answer[i + 1] += 1;
-			if (i == limit - 1) {
-				++limit;
-			}
-		}
-		if (answer.At(i) < 0) {
-			answer[i] += 10;
-			--answer[i + 1];
-		}
-	}*/
-	return answer;
-}
-FixedReal operator-(const FixedReal& _Val1, const FixedReal& _Val2) {
-	FixedReal val2{ _Val2 };
-	val2.sign_ = !val2.sign_;
-	return _Val1 + val2;
-}
-FixedReal operator*(const FixedReal& _Val1, const FixedReal& _Val2) {
-	if (_Val1.infinity_bit_ && _Val2.infinity_bit_) {
-		if (_Val1.sign_ ^ _Val2.sign_) return FixedReal(true, true);
-		else return FixedReal(false, true);
+	//Check that whether char type value is number or not.
+	inline constexpr bool IsNumber(const char _Val) noexcept {
+		return ('0' <= _Val && _Val <= '9');
 	}
-	if (_Val1.infinity_bit_ || _Val2.infinity_bit_) {
-		if (_Val1 == 0 || _Val2 == 0) return FixedReal(nullptr);
-		if (_Val1.sign_ ^ _Val2.sign_) return FixedReal(true, true);
-		else return FixedReal(false, true);
-	}
-	if (_Val1.capacity_ == 0 || _Val2.capacity_ == 0) return FixedReal(nullptr);
-	if (_Val1 == 0 || _Val2 == 0) return 0;
-	const int to_alloc = std::max(_Val1.DigitInt() + _Val2.DigitInt(), _Val1.DigitDec() + _Val2.DigitDec());
-	FixedReal answer{};
-	answer.Reserve(to_alloc);
-	if (_Val1.sign_ ^ _Val2.sign_) answer.sign_ = 1;
-	int k;
-	for (int i = -1 * _Val1.DigitDec();i < _Val1.DigitInt();i++) {
-		for (int j = -1 * _Val2.DigitDec();j < _Val2.DigitInt();j++) {
-			k = _Val1.At(i) * _Val2.At(j);
-			answer[i + j] += k % 10;
-			answer[i + j + 1] += k / 10;
-		}
-	}
-	for (int i = -1 * answer.DigitDec();i < answer.DigitInt();i++) {
-		if (answer.At(i) > 9) {
-			k = answer.At(i) / 10;
-			answer[i] -= k * 10;
-			answer[i + 1] += k;
-		}
-	}
-	return answer;
-}
-FixedReal operator/(const FixedReal& _Val1, const FixedReal& _Val2) {
-	if (_Val1.infinity_bit_ && _Val2.infinity_bit_) return FixedReal(nullptr);
-	if (_Val1.infinity_bit_) {
-		if (_Val1.sign_ ^ _Val2.sign_) return FixedReal(true, true);
-		else return FixedReal(false, true);
-	}
-	if (_Val2.infinity_bit_) return 0;
-	if (_Val2 == 0) {
-		if (_Val1 == 0) return FixedReal(nullptr);
-		if (_Val1.sign_) return FixedReal(true, true);
-		else return FixedReal(false, true);
-	}
-	if (_Val1.capacity_ == 0 || _Val2.capacity_ == 0) return FixedReal(nullptr);
-	if (_Val1 == 0) return 0;
-	const int to_alloc = std::max(FixedReal::kAccuracy, static_cast<int>(_Val1.DigitInt() + _Val2.DigitDec()));
-	FixedReal answer{};
-	answer.Reserve(to_alloc);
-	if (_Val1.sign_ ^ _Val2.sign_) answer.sign_ = 1;
-	FixedReal remainder{ _Val1 };
-	FixedReal divisor{ _Val2 };
-	remainder.sign_ = false;
-	divisor.sign_ = false;
-	FixedReal k{};
-	for (int i = _Val1.DigitInt() + _Val2.DigitDec() - 1;i >= -FixedReal::kAccuracy;i--) {
-		for (int j = 9;j > 0;j--) {
-			k = j * divisor * PowerOfTen(i);
-			if (remainder >= k) {
-				answer[i] = j;
-				remainder -= k;
-				if (remainder == 0) return answer;
-				break;
-			}
-		}
-	}
-	return answer;
-}
-bool operator<(const FixedReal& _Val1, const FixedReal& _Val2) noexcept {
-	if (_Val1.infinity_bit_) {
-		if (_Val2.infinity_bit_) {
-			if (_Val1.sign_ ^ _Val2.sign_) return !_Val2.sign_;
-			else return false;
-		}
-		else return _Val1.sign_;
-	}
-	else if (_Val2.infinity_bit_) return !_Val2.sign_;
-	if (_Val1.capacity_ == 0 || _Val2.capacity_ == 0) return false;
-	if (_Val1.sign_ ^ _Val2.sign_) return !_Val2.sign_;
-	if (_Val1.sign_) {
-		FixedReal val1{ _Val1 };
-		FixedReal val2{ _Val2 };
-		val1.sign_ = false;
-		val2.sign_ = false;
-		if (val1 == val2) {
+	inline bool IsNumber(const std::string& _Val) noexcept {
+		std::string val(_Val);
+		val.erase(std::remove(val.begin(), val.end(), ','), val.end());
+		bool exist_point = false;
+		switch (val.at(0))
+		{
+		case '+':case '-':
+			break;
+		case '.':
+			exist_point = true;
+			break;
+		default:
+			if (IsNumber(val.at(0))) break;
 			return false;
 		}
-		return !(val1 < val2);
-	}
-	if (_Val1.DigitInt() < _Val2.DigitInt()) return true;
-	if (_Val1.DigitInt() > _Val2.DigitInt()) return false;
-	for (int i = _Val1.DigitInt() - 1;i >= -1 * std::max(_Val1.DigitDec(), _Val2.DigitDec());i--) {
-		if (_Val1.At(i) < _Val2.At(i)) return true;
-		if (_Val1.At(i) > _Val2.At(i)) return false;
-	}
-	return false;
-}
-bool operator>(const FixedReal& _Val1, const FixedReal& _Val2) noexcept {
-	if (_Val1.infinity_bit_) {
-		if (_Val2.infinity_bit_) {
-			if (_Val1.sign_ ^ _Val2.sign_) return !_Val1.sign_;
-			else return false;
-		}
-		return !_Val1.sign_;
-	}
-	else if (_Val2.infinity_bit_) return _Val2.sign_;
-	if (_Val1.capacity_ == 0 || _Val2.capacity_ == 0) return false;
-	if (_Val1.sign_ ^ _Val2.sign_) return !_Val1.sign_;
-	if (_Val1.sign_) {
-		FixedReal val1{ _Val1 };
-		FixedReal val2{ _Val2 };
-		val1.sign_ = false;
-		val2.sign_ = false;
-		if (val1 == val2) {
-			return false;
-		}
-		return !(val1 > val2);
-	}
-	if (_Val1.DigitInt() > _Val2.DigitInt()) return true;
-	if (_Val1.DigitInt() < _Val2.DigitInt()) return false;
-	for (int i = _Val1.DigitInt() - 1;i >= -1 * std::max(_Val1.DigitDec(), _Val2.DigitDec());i--) {
-		if (_Val1.At(i) > _Val2.At(i)) return true;
-		if (_Val1.At(i) < _Val2.At(i)) return false;
-	}
-	return false;
-}
-bool operator<=(const FixedReal& _Val1, const FixedReal& _Val2) noexcept {
-	return (_Val1 < _Val2 || _Val1 == _Val2);
-}
-bool operator>=(const FixedReal& _Val1, const FixedReal& _Val2) noexcept {
-	return (_Val1 > _Val2 || _Val1 == _Val2);
-}
-bool operator==(const FixedReal& _Val1, const FixedReal& _Val2) noexcept {
-	if (_Val1.infinity_bit_) {
-		if (_Val2.infinity_bit_) return !(_Val1.sign_ ^ _Val2.sign_);
-		else return false;
-	}
-	else if (_Val2.infinity_bit_) return false;
-	else if (_Val1.capacity_ == 0 && _Val2.capacity_ == 0) return true;
-	else if (_Val1.capacity_ == 0 || _Val2.capacity_ == 0) return false;
-	else if (_Val1.sign_ ^ _Val2.sign_) return false;
-	else if (_Val1.DigitInt() != _Val2.DigitInt() || _Val1.DigitDec() != _Val2.DigitDec())
-		return false;
-	for (int i = _Val1.DigitInt() - 1;i >= 0;i--) {
-		if (_Val1.data_int_.at(i) != _Val2.data_int_.at(i)) return false;
-	}
-	for (int i = _Val1.DigitDec() - 1;i >= 0;i--) {
-		if (_Val1.data_dec_.at(i) != _Val2.data_dec_.at(i)) return false;
-	}
-	return true;
-}
-bool operator!=(const FixedReal& _Val1, const FixedReal& _Val2) noexcept {
-	return !(_Val1 == _Val2);
-}
-
-
-FixedReal::operator std::string() const noexcept {
-	if (infinity_bit_) {
-		if (sign_) return std::string{ "-INFINITY" };
-		else return std::string{ "INFINITY" };
-	}
-	if (capacity_ == 0) return std::string{ "NaN" };
-	std::string answer;
-	if (sign_) answer.push_back('-');
-	for (int i = DigitInt() - 1;i >= 0;i--) answer.push_back(data_int_.at(i) + '0');
-	if (DigitDec() == 0) return answer;
-	answer.push_back('.');
-	for (int i = 0;i < DigitDec();i++) answer.push_back(data_dec_.at(i) + '0');
-	return answer;
-}
-FixedReal::operator bool() const noexcept {
-	if (*this == 0) return false;
-	else return true;
-}
-FixedReal::operator short() const noexcept {
-	if (capacity_ == 0) return NULL;
-	if (*this > SHRT_MAX - 1)return SHRT_MAX;
-	if (*this < SHRT_MIN + 1)return SHRT_MIN;
-	short answer = 0;
-	for (int i = DigitInt() - 1;i >= 0;i--) answer += data_int_.at(i) * PowerOfTen<short>(i);
-	if (sign_) answer *= -1;
-	return answer;
-}
-FixedReal::operator unsigned short() const noexcept {
-	if (capacity_ == 0) return NULL;
-	if (*this > USHRT_MAX - 1) return USHRT_MAX;
-	if (*this < 1) return 0;
-	unsigned short answer = 0;
-	for (int i = DigitInt() - 1;i >= 0;i--) answer += data_int_.at(i) * PowerOfTen<unsigned short>(i);
-	return answer;
-}
-FixedReal::operator int() const noexcept {
-	if (capacity_ == 0) return NULL;
-	if (*this > INT_MAX - 1) return INT_MAX;
-	if (*this < INT_MIN + 1) return INT_MIN;
-	int answer = 0;
-	for (int i = DigitInt() - 1;i >= 0;i--) answer += data_int_.at(i) * PowerOfTen<int>(i);
-	if (sign_) answer *= -1;
-	return answer;
-}
-FixedReal::operator unsigned int() const noexcept {
-	if (capacity_ == 0) return NULL;
-	if (*this > UINT_MAX - 1) return UINT_MAX;
-	if (*this < 1) return 0;
-	unsigned int answer = 0;
-	for (int i = DigitInt() - 1;i >= 0;i--) answer += data_int_.at(i) * PowerOfTen<unsigned int>(i);
-	return answer;
-}
-FixedReal::operator long() const noexcept {
-	if (capacity_ == 0) return NULL;
-	if (*this > LONG_MAX - 1) return LONG_MAX;
-	if (*this < LONG_MIN + 1) return LONG_MIN;
-	long answer = 0;
-	for (int i = DigitInt() - 1;i >= 0;i--) answer += data_int_.at(i) * PowerOfTen<long>(i);
-	if (sign_) answer *= -1;
-	return answer;
-}
-FixedReal::operator unsigned long() const noexcept {
-	if (capacity_ == 0) return NULL;
-	if (*this > ULONG_MAX - 1) return ULONG_MAX;
-	if (*this < 1) return 0;
-	unsigned long answer = 0;
-	for (int i = DigitInt() - 1;i >= 0;i--) answer += data_int_.at(i) * PowerOfTen<unsigned long>(i);
-	return answer;
-}
-FixedReal::operator long long() const noexcept {
-	if (capacity_ == 0) return NULL;
-	if (*this > LLONG_MAX - 1) return LLONG_MAX;
-	if (*this < LLONG_MIN + 1) return LLONG_MIN;
-	long long answer = 0;
-	for (int i = DigitInt() - 1;i >= 0;i--) answer += data_int_.at(i) * PowerOfTen<long long>(i);
-	if (sign_) answer *= -1;
-	return answer;
-}
-FixedReal::operator unsigned long long() const noexcept {
-	if (capacity_ == 0) return NULL;
-	if (*this > ULLONG_MAX - 1) return ULLONG_MAX;
-	if (*this < 1) return 0;
-	unsigned long long answer = 0;
-	for (int i = DigitInt() - 1;i >= 0;i--) answer += data_int_.at(i) * PowerOfTen<unsigned long long>(i);
-	return answer;
-}
-FixedReal::operator float() const noexcept {
-	if (capacity_ == 0) return NULL;
-	if (*this >= FLT_MAX) return FLT_MAX;
-	if (*this <= -FLT_MAX) return -FLT_MAX;
-	if (*this == 0) return 0.0f;
-	float answer = 0;
-	for (int i = DigitHighest();i > DigitHighest() - 7;i--) answer += At(i) * PowerOfTen<float>(i);
-	if (sign_) answer *= -1;
-	return answer;
-}
-FixedReal::operator double() const noexcept {
-	if (capacity_ == 0) return NULL;
-	if (*this >= DBL_MAX) return DBL_MAX;
-	if (*this <= -DBL_MAX) return -DBL_MAX;
-	if (*this == 0) return 0.0;
-	double answer = 0;
-	for (int i = DigitHighest();i > DigitHighest() - 15;i--) answer += At(i) * PowerOfTen<double>(i);
-	if (sign_) answer *= -1;
-	return answer;
-}
-FixedReal::operator long double() const noexcept {
-	if (capacity_ == 0) return NULL;
-	if (*this >= LDBL_MAX) return LDBL_MAX;
-	if (*this <= -LDBL_MAX) return -LDBL_MAX;
-	if (*this == 0) return 0.0L;
-	long double answer = 0;
-	for (int i = DigitHighest();i > DigitHighest() - 15;i--) answer += At(i) * PowerOfTen<long double>(i);
-	if (sign_) answer *= -1;
-	return answer;
-}
-
-short FixedReal::At(const int index) const {
-	if (infinity_bit_) {
-		std::cout << "$ERROR$ referenced infinity" << std::endl;
-		std::cout << "ERROR position : " << __FUNCTION__ << std::endl;
-		std::cout << "Class_Real_Number.cpp" << std::endl;
-		return NULL;
-	}
-	if (index >= DigitInt() || index < -1 * DigitDec()) {
-		return 0;
-	}
-	if (index >= 0) {
-		return data_int_.at(index);
-	}
-	return data_dec_.at(-index - 1);
-}
-FixedReal FixedReal::RoundOff(const int _digit) noexcept {
-	(*this) = real::RoundOff(*this, _digit);
-	return *this;
-}
-FixedReal FixedReal::RoundUp(const int _digit) noexcept {
-	(*this) = real::RoundUp(*this, _digit);
-	return *this;
-}
-FixedReal FixedReal::RoundDown(const int _digit) noexcept {
-	(*this) = real::RoundDown(*this, _digit);
-	return *this;
-}
-
-
-FixedReal Power(const FixedReal& base, const FixedReal& exponent) noexcept {
-	//Check special case
-	{
-		if (base.capacity_ == 0 || exponent.capacity_ == 0) return FixedReal(nullptr);
-		bool base0 = (base == 0), base_inf = (base == FixedReal(false, true));
-		bool base_n_inf = (base == FixedReal(true, true)), expo0 = (exponent == 0);
-		bool expo_inf = (exponent == FixedReal(false, true));
-		bool expo_n_inf = (exponent == FixedReal(true, true));
-		if (exponent > INT_MAX) expo_inf = true;
-		else if (exponent < INT_MIN) expo_n_inf = true;
-		if (((base0 || base_inf || base_n_inf) && expo0) ||
-			(base_n_inf && expo_inf) ||
-			(base0 && expo_n_inf)) return FixedReal(nullptr);
-		if ((base0 && expo_inf) ||
-			((base_inf || base_n_inf) && expo_n_inf)) return 0;
-		if (base_inf && expo_inf) return FixedReal(false, true);
-		//have to follow the order
-		if (base0) return 0;
-		if (expo0) return FixedReal(true); //1
-		if (expo_n_inf) return 0;
-		if (base_inf) return exponent > 0 ? FixedReal(false, true) : 0;
-		if (expo_inf) return base > 0 ? FixedReal(false, true) : FixedReal(nullptr);
-		if (base_n_inf) {
-			if (exponent.IsInteger()) {
-				if (exponent < 0) return 0;
-				if (exponent.IsInteger() || exponent.data_int_[0] % 2 == 0)
-					return FixedReal(false, true);
-				else return FixedReal(true, true);
+		for (size_t i = 1;i != val.length();i++) {
+			if (val.at(i) == '.') {
+				if (exist_point) return false;
+				else
+				{
+					exist_point = true;
+					continue;
+				}
 			}
-			else return FixedReal(nullptr);
+			if (!IsNumber(val.at(i))) return false;
 		}
+		return true;
 	}
-	if (exponent.IsInteger()) {
-		FixedReal answer{ 1 };
-		int _index = static_cast<int>(exponent);
-		if (base == 10) return (answer << _index);
 
-		if (_index > 0) {
-			for (int i = _index - 1;i >= 0;i--) answer *= base;
-		}
-		else {
-			for (int i = -_index - 1;i >= 0;i--) answer /= base;
-		}
-		return answer;
-	}
-#ifdef _CMATH_
-	return std::pow(static_cast<double>(base), static_cast<double>(exponent));
-#else
-	FixedReal answer{ 1 };
-	int _index = static_cast<int>(exponent);
-	if (base == 10) return (answer << _index);
-	if (_index > 0) {
-		for (int i = _index - 1;i >= 0;i--) answer *= base;
-	}
-	else {
-		for (int i = -_index - 1;i >= 0;i--) answer /= base;
-	}
-	return answer;
-#endif // _CMATH_
-}
-FixedReal PowerOfTen(const int index) noexcept {
-	FixedReal answer{ 1 };
-	return answer << index;
-}
-FixedReal SquareRoot(const FixedReal& _Val) noexcept {
-	if (_Val.sign_) return FixedReal(nullptr);
-	if (_Val.infinity_bit_) return _Val;
-	if (_Val.capacity_ == 0) return FixedReal(nullptr);
-	if (_Val == 0) return 0;
-	FixedReal answer{};
-	FixedReal remainder{ _Val };
-	int highest;
-	if (_Val.DigitHighest() >= 0) highest = _Val.DigitHighest() / 2;
-	else highest = (_Val.DigitHighest() - 1) / 2;
-	answer.Reserve(std::max(highest + 1, FixedReal::kAccuracy));
-	answer[highest] = SqrtUnder100(10 * _Val.At(2 * highest + 1) + _Val.At(2 * highest));
-	remainder -= FixedReal{ answer.At(highest) * answer.At(highest) } << (2 * highest);
-	if (remainder == 0) return answer;
-	FixedReal k{};
-	for (int i = highest - 1;i >= -FixedReal::kAccuracy;i--) {
-		for (int j = 9;j > 0;j--) {
-			k = (((answer >> i) * 2 + j) * j) << 2 * i;
-			if (k <= remainder) {
-				answer[i] = j;
-				remainder -= k;
-				if (remainder == 0) return answer;
-				break;
+	//Calculate power of ten.
+	template<typename Ty>
+	inline constexpr Ty PowerOfTen(const int index) noexcept {
+		Ty answer = 1;
+		if (index > 308 || index < -308) return NULL;
+		if (index > 0) {
+			for (int i = 0;i < index;i++) {
+				answer *= 10;
 			}
-		}
-	}
-	return answer;
-}
-FixedReal PrintSquareRoot(const FixedReal& _Val, std::ostream& _Ostr) noexcept {
-	if (_Val.sign_) {
-		_Ostr << "NaN" << std::endl;
-		return FixedReal(nullptr);
-	}
-	if (_Val.infinity_bit_) {
-		_Ostr << "INFINITY" << std::endl;
-		return FixedReal(false, true);
-	}
-	if (_Val.capacity_ == 0) {
-		_Ostr << "NaN" << std::endl;
-		return FixedReal(nullptr);
-	}
-	if (_Val == 0) {
-		_Ostr << 0 << std::endl;
-		return 0;
-	}
-	FixedReal answer{};
-	FixedReal remainder{ _Val };
-	int highest;
-	if (_Val.DigitHighest() >= 0) highest = _Val.DigitHighest() / 2;
-	else highest = (_Val.DigitHighest() - 1) / 2;
-	answer.Reserve(std::max(highest + 1, FixedReal::kAccuracy));
-	answer[highest] = SqrtUnder100(10 * _Val.At(2 * highest + 1) + _Val.At(2 * highest));
-	remainder -= FixedReal{ answer.At(highest) * answer.At(highest) } << (2 * highest);
-	if (remainder == 0) {
-		if (highest >= 0) {
-			_Ostr << answer.At(highest);
-			for (int i = 0;i < highest;i++) _Ostr << 0;
 		}
 		else
 		{
-			_Ostr << "0.";
-			for (int i = 0;i < -highest - 1;i++) _Ostr << '0';
-			_Ostr << answer.At(highest);
-		}
-		std::cout << std::endl;
-		return answer;
-	}
-	if (highest > 0) _Ostr << answer.At(highest);
-	else if (highest == 0)
-	{
-		_Ostr << answer.At(highest);
-		_Ostr << '.';
-	}
-	else
-	{
-		_Ostr << "0.";
-		for (int i = 0;i < -highest - 1;i++)_Ostr << '0';
-		_Ostr << answer.At(highest);
-	}
-	if (remainder == 0) {
-		_Ostr << std::endl;
-		return answer;
-	}
-	FixedReal k{};
-	for (int i = highest - 1;i >= -FixedReal::kAccuracy;i--) {
-		for (int j = 9;j > 0;j--) {
-			k = (((answer >> i) * 2 + j) * j) << 2 * i;
-			if (k <= remainder) {
-				answer[i] = j;
-				remainder -= k;
-				_Ostr << j;
-				if (remainder == 0) {
-					_Ostr << std::endl;
-					return answer;
-				}
-				break;
+			for (int i = 0;i < -1 * index;i++) {
+				answer /= 10;
 			}
 		}
-		if (answer.At(i) == 0) _Ostr << '0';
-		if (i == 0) _Ostr << '.';
+		return answer;
 	}
-	_Ostr << std::endl;
-	return answer;
-}
-FixedReal RoundOff(const FixedReal& _Val, const int _digit) noexcept {
-	if (_Val.capacity_ == 0) return _Val;
-	if (_digit > _Val.DigitInt()) return 0;
-	if (_digit < -1 * _Val.DigitDec()) return _Val;
-	FixedReal answer{};
-	if (_digit == _Val.capacity_) {
-		answer.Reserve(_digit + 1);
-		if (_Val.At(_digit - 1) > 4) {
-			answer[_digit] = 1;
-			return answer;
-		}
+
+	//Calculate square root of under 100.
+	inline constexpr unsigned int SqrtUnder100(const unsigned int _Val) noexcept {
+		if (_Val > 100) return NULL;
+		if (_Val == 100) return 10;
+		if (_Val >= 81) return 9;
+		if (_Val >= 64) return 8;
+		if (_Val >= 49) return 7;
+		if (_Val >= 36) return 6;
+		if (_Val >= 25)	return 5;
+		if (_Val >= 16) return 4;
+		if (_Val >= 9) return 3;
+		if (_Val >= 4) return 2;
+		if (_Val >= 1) return 1;
 		return 0;
 	}
-	answer = _Val;
-	if (_Val.At(_digit - 1) > 4) {
-		++answer[_digit];
-		for (int i = _digit;i < answer.capacity_;i++) {
-			if (answer.At(i) == 10) {
-				answer[i] = 0;
-				++answer[i + 1];
-			}
-		}
-	}
-	return RoundDown(answer, _digit);
-}
-FixedReal RoundUp(const FixedReal& _Val, const int _digit) noexcept {
-	if (_Val.capacity_ == 0) return _Val;
-	if (_digit > _Val.DigitInt()) return 0;
-	if (_digit < -1 * _Val.DigitDec()) return _Val;
-	FixedReal answer{};
-	if (_digit == _Val.capacity_) {
-		answer.Reserve(_digit + 1);
-		answer[_digit] = 1;
-		return answer;
-	}
-	answer = _Val;
-	++answer[_digit];
-	for (int i = _digit;i < answer.capacity_;i++) {
-		if (answer.At(i) == 10) {
-			answer[i] = 0;
-			++answer[i + 1];
-		}
-	}
-	return RoundDown(answer, _digit);
-}
-FixedReal RoundDown(const FixedReal& _Val, const int _digit) noexcept {
-	if (_Val.capacity_ == 0) return _Val;
-	if (_digit >= _Val.DigitInt()) return 0;
-	if (_digit < -1 * _Val.DigitDec()) return _Val;
-	FixedReal answer{ _Val };
-	for (int i = _digit - 1;i >= -1 * answer.capacity_;i--) answer[i] = 0;
-	return answer;
 }
 
-FixedReal Factorial(const unsigned int _Val) {
-	switch (_Val)
-	{
-	case 0:return 1;
-	case 1:return 1;
-	case 2:return 2;
-	case 3:return 6;
-	case 4:return 24;
-	case 5:return 120;
-	case 6:return 720;
-	case 7:return 5040;
-	case 8:return 40320;
-	case 9:return 362880;
-	case 10:return 3628800;
-	case 11:return 39916800;
-	case 12:return 479001600;
-	default:
-		FixedReal answer{ 479001600 };
-		for (FixedReal i = 13;i <= _Val;i++) answer *= i;
-		return answer;
+//This class is about real number.
+//This class is fixed point.
+class FixedReal {
+public:
+	using DataT = short;
+	//change the values according to the situation
+	//The "accuracy" is how many digits are found after the decimal point.
+	static const int kAccuracy = 30;
+
+private:
+	//true is -,false is +,0 is +
+	bool sign_;
+	std::vector<short> data_int_;
+	std::vector<short> data_dec_;
+	//0 means NaN or infinity.
+	bool infinity_bit_;
+
+	explicit FixedReal(bool _Sign, bool _INFINITYbit) noexcept;
+	explicit FixedReal(const unsigned long long& _Val, bool _Sign, bool _Check2) noexcept;
+	short operator[](const int index) const;
+	short& operator[](const int index);
+public:
+	FixedReal() noexcept;
+	FixedReal(const std::string& _Val) noexcept;
+	FixedReal(const bool _Val) noexcept;
+	FixedReal(const short _Val) noexcept;
+	FixedReal(const int _Val) noexcept;
+	FixedReal(const long _Val) noexcept;
+	FixedReal(const long long& _Val) noexcept;
+	FixedReal(const unsigned short _Val) noexcept;
+	FixedReal(const unsigned int _Val) noexcept;
+	FixedReal(const unsigned long _Val) noexcept;
+	FixedReal(const unsigned long long& _Val) noexcept;
+	FixedReal(const float _Val) noexcept;
+	FixedReal(const double& _Val) noexcept;
+	FixedReal(const long double& _Val) noexcept;
+	FixedReal(const char* const _Val) noexcept;
+	FixedReal(const std::nullptr_t& _nullptr) noexcept;
+	FixedReal(const FixedReal& _Val) = default;
+	FixedReal(FixedReal&& _Val) = default;
+
+	~FixedReal() = default;
+
+	//Reserves places that datas will be saved.
+	void Reserve(const size_t _Size) noexcept;
+
+	//Check how many digit are saved in integer place.
+	//If integer part is 0, Nan and infinity returns 0.
+	int DigitInt() const noexcept;
+	//Check how many digit are saved in decimal place.
+	//If decimal part is 0, Nan and infinity returns 0.
+	int DigitDec() const noexcept;
+	//Check the highest digit.
+	//0, Nan and infinity returns 0.
+	int DigitHighest() const noexcept;
+	//Check current reserved size.
+	inline int Capacity() const noexcept {
+		return data_dec_.size();
 	}
+	//Check whether it is infinity or not.
+	inline bool IsInfinity() const noexcept {
+		return infinity_bit_;
+	}
+	//Check whether it is not a number or a number.
+	//Includes infinity.
+	inline bool IsNan() const noexcept {
+		return data_dec_.size() == 0;
+	}
+	inline bool IsInteger() const noexcept {
+		return DigitDec() == 0;
+	}
+
+	FixedReal& operator=(const FixedReal&) = default;
+	FixedReal& operator=(FixedReal&&) = default;
+	const FixedReal& operator+=(const FixedReal& _Val) noexcept;
+	const FixedReal& operator-=(const FixedReal& _Val) noexcept;
+	const FixedReal& operator*=(const FixedReal& _Val) noexcept;
+	const FixedReal& operator/=(const FixedReal& _Val) noexcept;
+	const FixedReal& operator<<=(const int _Val) noexcept;
+	const FixedReal& operator>>=(const int _Val) noexcept;
+
+	FixedReal operator<<(const int index) const noexcept;
+	FixedReal operator>>(const int index) const noexcept;
+	const FixedReal& operator++() noexcept;
+	FixedReal operator++(int) noexcept;
+	const FixedReal& operator--() noexcept;
+	FixedReal operator--(int) noexcept;
+	FixedReal operator-() const noexcept;
+
+
+	friend std::istream& operator>>(std::istream& _Istr, FixedReal& _Val) noexcept;
+	friend std::ostream& operator<<(std::ostream& _Ostr, const FixedReal& _Val) noexcept;
+	friend FixedReal operator+(const FixedReal& _Val1, const FixedReal& _Val2);
+	friend FixedReal operator-(const FixedReal& _Val1, const FixedReal& _Val2);
+	friend FixedReal operator*(const FixedReal& _Val1, const FixedReal& _Val2);
+	friend FixedReal operator/(const FixedReal& _Val1, const FixedReal& _Val2);
+	friend bool operator<(const FixedReal& _Val1, const FixedReal& _Val2) noexcept;
+	friend bool operator>(const FixedReal& _Val1, const FixedReal& _Val2) noexcept;
+	friend bool operator<=(const FixedReal& _Val1, const FixedReal& _Val2) noexcept;
+	friend bool operator>=(const FixedReal& _Val1, const FixedReal& _Val2) noexcept;
+	friend bool operator==(const FixedReal& _Val1, const FixedReal& _Val2) noexcept;
+	friend bool operator!=(const FixedReal& _Val1, const FixedReal& _Val2) noexcept;
+
+
+	explicit operator std::string() const noexcept;
+	explicit operator bool() const noexcept;
+	explicit operator short() const noexcept;
+	explicit operator unsigned short() const noexcept;
+	explicit operator int() const noexcept;
+	explicit operator unsigned int() const noexcept;
+	explicit operator long() const noexcept;
+	explicit operator unsigned long() const noexcept;
+	explicit operator long long() const noexcept;
+	explicit operator unsigned long long() const noexcept;
+	explicit operator float() const noexcept;
+	explicit operator double() const noexcept;
+	explicit operator long double() const noexcept;
+
+
+	//If someone tries to reference out of range, it returns 0.
+	//Read Only
+	short At(const int index) const;
+	FixedReal RoundOff(const int _digit = 0) noexcept;
+	FixedReal RoundUp(const int _digit = 0) noexcept;
+	FixedReal RoundDown(const int _digit = 0) noexcept;
+	inline FixedReal& Abs() noexcept {
+		sign_ = false;
+		return *this;
+	}
+
+
+	friend FixedReal Power(const FixedReal& base, const FixedReal& index) noexcept;
+	friend FixedReal PowerOfTen(const int index) noexcept;
+	friend FixedReal SquareRoot(const FixedReal& _Val) noexcept;
+	friend FixedReal PrintSquareRoot(const FixedReal& _Val, std::ostream& _Ostr) noexcept;
+	friend FixedReal RoundOff(const FixedReal& _Val, const int _digit) noexcept;
+	friend FixedReal RoundUp(const FixedReal& _Val, const int _digit) noexcept;
+	friend FixedReal RoundDown(const FixedReal& _Val, const int _digit) noexcept;
+
+	friend inline FixedReal Abs(const FixedReal& val) noexcept;
+};
+
+FixedReal Power(const FixedReal& base, const FixedReal& index) noexcept;
+FixedReal PowerOfTen(const int index) noexcept;
+FixedReal SquareRoot(const FixedReal& _Val) noexcept;
+FixedReal PrintSquareRoot(const FixedReal& _Val, std::ostream& _Ostr = std::cout) noexcept;
+FixedReal RoundOff(const FixedReal& _Val, const int _digit = 0) noexcept;
+FixedReal RoundUp(const FixedReal& _Val, const int _digit = 0) noexcept;
+FixedReal RoundDown(const FixedReal& _Val, const int _digit = 0) noexcept;
+
+FixedReal Factorial(const unsigned int _Val);
+inline FixedReal Abs(const FixedReal& val) noexcept {
+	FixedReal answer(val);
+	answer.sign_ = false;
+	return answer;
 }
 
 REAL_END
+
+#endif // !REALNUMBER_REAL_H_
