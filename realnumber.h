@@ -113,7 +113,6 @@ private:
 	std::vector<short> data_int_;
 	std::vector<short> data_dec_;
 	//0 means NaN or infinity.
-	int capacity_;
 	bool infinity_bit_;
 
 	explicit FixedReal(bool _Sign, bool _INFINITYbit) noexcept;
@@ -156,7 +155,7 @@ public:
 	int DigitHighest() const noexcept;
 	//Check current reserved size.
 	inline int Capacity() const noexcept {
-		return capacity_;
+		return data_dec_.size();
 	}
 	//Check whether it is infinity or not.
 	inline bool IsInfinity() const noexcept {
@@ -165,7 +164,7 @@ public:
 	//Check whether it is not a number or a number.
 	//Includes infinity.
 	inline bool IsNan() const noexcept {
-		return capacity_ == 0;
+		return data_dec_.size() == 0;
 	}
 	inline bool IsInteger() const noexcept {
 		return DigitDec() == 0;
@@ -224,6 +223,10 @@ public:
 	FixedReal RoundOff(const int _digit = 0) noexcept;
 	FixedReal RoundUp(const int _digit = 0) noexcept;
 	FixedReal RoundDown(const int _digit = 0) noexcept;
+	inline FixedReal& Abs() noexcept {
+		sign_ = false;
+		return *this;
+	}
 
 
 	friend FixedReal Power(const FixedReal& base, const FixedReal& index) noexcept;
@@ -233,6 +236,8 @@ public:
 	friend FixedReal RoundOff(const FixedReal& _Val, const int _digit) noexcept;
 	friend FixedReal RoundUp(const FixedReal& _Val, const int _digit) noexcept;
 	friend FixedReal RoundDown(const FixedReal& _Val, const int _digit) noexcept;
+
+	friend inline FixedReal Abs(const FixedReal& val) noexcept;
 };
 
 FixedReal Power(const FixedReal& base, const FixedReal& index) noexcept;
@@ -244,6 +249,11 @@ FixedReal RoundUp(const FixedReal& _Val, const int _digit = 0) noexcept;
 FixedReal RoundDown(const FixedReal& _Val, const int _digit = 0) noexcept;
 
 FixedReal Factorial(const unsigned int _Val);
+inline FixedReal Abs(const FixedReal& val) noexcept {
+	FixedReal answer(val);
+	answer.sign_ = false;
+	return answer;
+}
 
 REAL_END
 
